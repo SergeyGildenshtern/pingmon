@@ -1,0 +1,42 @@
+name: pingmon
+
+services:
+  app:
+    build: .
+    container_name: app
+    restart: always
+    environment:
+      PORT: ${PORT}
+      FORMATION: --formation all=1
+    ports:
+      - ${PORT}:${PORT}
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.4.1
+    container_name: clickhouse
+    restart: always
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+    expose:
+      - ${CLICKHOUSE_PORT}:${CLICKHOUSE_PORT}
+    volumes:
+      - clickhouse-volume:/var/lib/clickhouse
+      - ./config/clickhouse/user.xml:/etc/clickhouse-server/users.d/user.xml
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+networks:
+  default:
+    driver: bridge
+
+volumes:
+  clickhouse-volume:

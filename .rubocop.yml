@@ -1,0 +1,26 @@
+AllCops:
+  TargetRubyVersion: 3.4.1
+  NewCops: enable
+
+Layout/LineLength:
+  Max: 100
+
+Metrics/AbcSize:
+  Exclude:
+    - config/database.rb
+
+Metrics/MethodLength:
+  Exclude:
+    - config/database.rb
+
+Metrics/BlockLength:
+  Enabled: false
+
+Style/Documentation:
+  Enabled: false
+
+Naming/MethodParameterName:
+  Enabled: false
+
+Style/FetchEnvVar:
+  Enabled: false

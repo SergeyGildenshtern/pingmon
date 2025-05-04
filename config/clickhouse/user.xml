@@ -1,0 +1,13 @@
+<clickhouse>
+    <profiles>
+        <default replace="replace">
+            <apply_mutations_on_fly>1</apply_mutations_on_fly>
+        </default>
+    </profiles>
+
+    <users>
+        <default replace="replace">
+            <password>default</password>
+        </default>
+    </users>
+</clickhouse>

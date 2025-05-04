@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'async/queue'
+require_relative '../config/environment'
+require_relative '../app/services/timer'
+require_relative '../app/services/pinger'
+require_relative '../app/services/bulk_saver'
+
+Async do
+  ips_queue = Async::Queue.new
+  metrics_queue = Async::Queue.new
+
+  Async do
+    Timer.new(ips_queue).call
+  end
+
+  Async do
+    Pinger.new(ips_queue, metrics_queue).call
+  end
+
+  Async do
+    BulkSaver.new(metrics_queue).call
+  end
+end
