@@ -10,8 +10,7 @@ Metrics/AbcSize:
     - config/database.rb
 
 Metrics/MethodLength:
-  Exclude:
-    - config/database.rb
+  Enabled: false
 
 Metrics/BlockLength:
   Enabled: false

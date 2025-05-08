@@ -8,6 +8,7 @@ gem 'async', '~> 2.23'
 gem 'click_house', '~> 2.1'
 gem 'csv', '~> 3.3'
 gem 'dotenv', '~> 3.1'
+gem 'dry-monads', '~> 1.8'
 gem 'puma', '~> 6.6'
 gem 'roda', '~> 3.91'
 

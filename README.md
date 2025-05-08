@@ -14,4 +14,3 @@ docker-compose up -d
 * Add signal handler to `bulk_saver.rb`
 * Setup github ci
 * Fix IPv6 addresses ping in docker
-* Refactor `pingmon.rb`?

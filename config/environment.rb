@@ -2,7 +2,6 @@
 
 require 'bundler/setup'
 require 'dotenv/load'
-require 'ipaddr'
 require_relative 'database'
 
 Bundler.require(:default)

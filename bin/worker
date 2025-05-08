@@ -3,9 +3,9 @@
 
 require 'async/queue'
 require_relative '../config/environment'
-require_relative '../app/services/timer'
-require_relative '../app/services/pinger'
-require_relative '../app/services/bulk_saver'
+require_relative '../app/services/worker/timer'
+require_relative '../app/services/worker/pinger'
+require_relative '../app/services/worker/bulk_saver'
 
 Async do
   ips_queue = Async::Queue.new

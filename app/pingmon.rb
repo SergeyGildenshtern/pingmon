@@ -1,8 +1,11 @@
 # frozen_string_literal: true
 
-require 'random/formatter'
+require_relative '../app/services/ip_creator'
+require_relative '../app/services/statistics_collector'
 
 class Pingmon < Roda
+  include Dry::Monads[:result]
+
   plugin :json
   plugin :halt
   plugin :all_verbs
@@ -19,30 +22,25 @@ class Pingmon < Roda
   route do |r|
     r.is 'ips' do
       r.post do
-        ip = r.params['ip']
-        enabled = r.params['enabled']
+        result = IpCreator.new(r.params['ip'], r.params['enabled']).call
 
-        begin
-          IPAddr.new(ip)
-          ip = ip.split('/').first
-        rescue IPAddr::Error
-          invalid_param_response(r, 'ip')
+        case result
+        in Success(data)
+          success_payload(data)
+        in Failure[:invalid_param, name]
+          invalid_param(r, name)
+        in Failure[:exists]
+          unprocessable_entity(r, 'IP address already exists')
         end
-        invalid_param_response(r, 'enabled') unless [true, false].include?(enabled)
-
-        if DB.select_value("SELECT 1 FROM ips WHERE ip = '#{ip}' LIMIT 1")
-          r.halt(422, failure_payload('IP address already exists'))
-        end
-
-        id = Random.uuid_v7
-        DB.insert('ips', { id:, ip:, is_enabled: enabled })
-
-        success_payload(id:, ip:, enabled:)
       end
 
       r.get do
-        ips = DB.select_all('SELECT id, ip, is_enabled AS enabled FROM ips ORDER BY id DESC').data
-        success_payload(ips)
+        result = DB.select_all <<-SQL
+          SELECT id, ip, is_enabled AS enabled
+          FROM ips
+          ORDER BY UUIDv7ToDateTime(id) DESC
+        SQL
+        success_payload(result.data)
       end
     end
 
@@ -62,26 +60,18 @@ class Pingmon < Roda
       end
 
       r.get 'stats' do
-        time_from = parse_datetime_param(r, 'time_from')
-        time_to   = parse_datetime_param(r, 'time_to')
-        r.halt(422, failure_payload('Requested time range is invalid')) if time_to < time_from
+        result = StatisticsCollector.new(id, r.params['time_from'], r.params['time_to']).call
 
-        stats = DB.select_one <<-SQL
-          SELECT
-              count(*) AS count,
-              round(avg(rtt), 3) AS avg_rtt,
-              round(min(rtt), 3) AS min_rtt,
-              round(max(rtt), 3) AS max_rtt,
-              round(median(rtt), 3) AS median_rtt,
-              round(stddevPop(rtt), 3) AS stddev_rtt,
-              round(countIf(isNull(rtt)) / count(*) * 100, 2) AS packet_loss
-          FROM ip_metrics
-          WHERE ip_id = '#{id}'
-          AND timestamp BETWEEN '#{time_from.strftime(DATE_FORMAT)}' AND '#{time_to.strftime(DATE_FORMAT)}'
-        SQL
-        r.halt(422, failure_payload('No statistics available')) if stats[:count].zero?
-
-        success_payload(stats.except(:count))
+        case result
+        in Success(data)
+          success_payload(data)
+        in Failure[:invalid_param, name]
+          invalid_param(r, name)
+        in Failure[:invalid_range]
+          unprocessable_entity(r, 'Requested time range is invalid')
+        in Failure[:no_statistics]
+          unprocessable_entity(r, 'No statistics available')
+        end
       end
 
       r.delete true do
@@ -102,14 +92,11 @@ class Pingmon < Roda
     { success: false, message: }
   end
 
-  def invalid_param_response(r, name)
-    r.halt(422, failure_payload("Missing or invalid parameter: #{name}"))
+  def unprocessable_entity(r, message)
+    r.halt(422, failure_payload(message))
   end
 
-  def parse_datetime_param(r, name)
-    value = r.params[name].to_s
-    DateTime.parse(value)
-  rescue Date::Error
-    invalid_param_response(r, name)
+  def invalid_param(r, name)
+    unprocessable_entity(r, "Missing or invalid parameter: #{name}")
   end
 end
